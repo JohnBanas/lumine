@@ -251,4 +251,16 @@ contract('Exchange', ([deployer, feeAccount, userOne]) => {
 
   })
 
+  describe('checking balances', () => {
+    beforeEach(async () => {
+      await exchange.depositEther({ from: userOne, value: ether(10) })
+    })
+
+    it('returns user balance', async () => {
+      const result = await exchange.balanceOf(ETHER_ADDRESS, userOne);
+      result.toString().should.equal(ether(10).toString());
+    })
+
+  })
+
 })
