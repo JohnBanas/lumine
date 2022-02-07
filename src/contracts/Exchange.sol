@@ -107,6 +107,10 @@ contract Exchange	{
 			emit Deposit(_token, msg.sender, _amount, tokens[_token][msg.sender]);
 		}
 
+		// Token Balance
+		function balanceOf(address _token, address _user) public view returns(uint256) {
+			return tokens[_token][_user];
+		}
 }
 
 
