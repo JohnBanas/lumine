@@ -15,6 +15,8 @@ contract Token {
   uint256 public decimals = 18;
   uint256 public totalSupply;
 
+  /* Mappings */
+
   /* Track Balances */
   mapping(address => uint256) public balanceOf;
 
@@ -34,33 +36,50 @@ contract Token {
 
   /* Internal, token transfer helper fx */
   function _transfer(address _from, address _to, uint256 _value) internal {
+    // must be a valid address
     require(_to != address(0));
+    // remove the token amount from the sending user's balance
     balanceOf[_from] = balanceOf[_from].sub(_value);
+    // add value to the recieving user's balance
     balanceOf[_to] = balanceOf[_to].add(_value);
+    // emit a Transfer event
     emit Transfer(_from, _to, _value);
   }
 
   /* Send Tokens */
   function transfer(address _to, uint256 _value) public returns (bool success) {
+    // check the balance of the sender to see if they have enough token to send
     require(balanceOf[msg.sender] >= _value);
+    // call internal fx _transfer
     _transfer(msg.sender, _to, _value);
+    // return a true value
     return true;
   }
 
-  /* Approve tokens */
+  /* Approve tokens for address to use*/
   function approve(address _spender, uint256 _value) public returns (bool success) {
+    // validate the address
     require(_spender != address(0));
+    // use the allowance mapping to track the token sender's approved amount of token value
     allowance[msg.sender][_spender] = _value;
+    // emit an Approval event
     emit Approval(msg.sender, _spender, _value);
+    // return the boolean success 
     return true;
   }
 
   /* Transfer from */
   function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+    // confirm that the balance is sufficient to send tokens
     require(_value <= balanceOf[_from]);
+    // check that the value of token being sent is less than the allowed amount
+    //  through the allowance mapping
     require(_value <= allowance[_from][msg.sender]);
+    // subtract the value from the allowance mapping approval amount
     allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);
+    // call transfer helper fx to send tokens
     _transfer(_from, _to, _value);
+    // return boolean value
     return true;
   }
   
