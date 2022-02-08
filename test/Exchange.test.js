@@ -38,7 +38,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
     token.transfer(userOne, formatTokens(100));
     // fee account is passed to the smart contract constructor
     exchange = await Exchange.new(feeAccount, feePercent);
-    
+
   })
 
   // Testing Exchange deployment
@@ -68,7 +68,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
 
     beforeEach(async () => {
       amount = ether(1);
-      result = await exchange.depositEther({ from: userOne, value: amount,  })
+      result = await exchange.depositEther({ from: userOne, value: amount, })
     })
 
     it('tracks the Ether deposit', async () => {
@@ -100,7 +100,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
     })
 
     describe('success', () => {
-      
+
       beforeEach(async () => {
         // Then withdraw 1 ether
         result = await exchange.withdrawEther(amount, { from: userOne });
@@ -131,7 +131,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
     describe('failure', () => {
       it('rejects withdraw for insufficient balance', async () => {
         await exchange.withdrawEther(ether(100), { from: userOne }).should.be.rejectedWith(EVM_REVERT);
-      }) 
+      })
     })
 
   })
@@ -199,7 +199,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
   describe('depositing tokens', async () => {
     let result;
     let amount;
-    
+
 
     describe('success', () => {
 
@@ -233,7 +233,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
         event.balance.toString().should.equal(amount.toString(), 'New balance is correct!');
       })
     })
-    
+
     describe('failure', () => {
 
       // Don't allow Ether deposits
@@ -268,14 +268,14 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
     /* 
     The _Order struct: 
       uint256 id;
-			address user;
-			address tokenGet;
-			uint256 amountGet;
-			address tokenGive;
-			uint256 amountGive;
-			uint256 timestamp;
+      address user;
+      address tokenGet;
+      uint256 amountGet;
+      address tokenGive;
+      uint256 amountGive;
+      uint256 timestamp;
     */
-  
+
     let result;
 
     // call the makeOrder fx before each test 
@@ -315,13 +315,101 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
 
   })
 
-  describe('order actions', async () => { 
+  describe('order actions', async () => {
 
     beforeEach(async () => {
-      // userOne deposits Ether
+      // userOne deposits Ether only
       await exchange.depositEther({ from: userOne, value: ether(1) });
+      // give tokens to userTwo
+      await token.transfer(userTwo, formatTokens(100), { from: deployer });
+      // userTwo approving the exchange for 2 tokens
+      await token.approve(exchange.address, formatTokens(2), { from: userTwo });
+      // the exchange deposits 2 tokens for userTwo
+      await exchange.depositToken(token.address, formatTokens(2), { from: userTwo });
       // userOne makes an order to buy tokens with Ether
       await exchange.makeOrder(token.address, formatTokens(1), ETHER_ADDRESS, ether(1), { from: userOne });
+    })
+
+    describe('fill the order', async () => {
+      let result;
+
+      describe('success', async () => {
+        
+        beforeEach(async () => {
+          // userTwo fills the order from userOne through the exchange
+          result = await exchange.fillOrder('1', { from: userTwo })
+        })
+
+        it('executes the trade and charges the fees', async () => {
+          let balance;
+          // wait until userOne gets the tokens
+          balance = await exchange.balanceOf(token.address, userOne);
+          //balance of userOne should equal the 1 token received
+          balance.toString().should.equal(formatTokens(1).toString(), 'userOne receives tokens');
+          //wait for userTwo to receive Ether for the tokens
+          balance = await exchange.balanceOf(ETHER_ADDRESS, userTwo);
+          // balance of userTwo should equal the one ether received
+          balance.toString().should.equal(ether(1).toString(), 'userTwo receives Ether');
+          // wait for Ether to deduct from userOne
+          balance = await exchange.balanceOf(ETHER_ADDRESS, userOne);
+          //the balance should be 0 since userone is paying usertwo
+          balance.toString().should.equal('0', 'userTwo has their ether deducted from userOne');
+          // check the balance of userTwo's tokens to make sure the tokens minus a fee are deducted
+          balance = await exchange.balanceOf(token.address, userTwo);
+          // if user had 2 tokens and traded 1 for a 10% fee they should have 0.9 token left
+          balance.toString().should.equal(formatTokens(0.9).toString(), 'userTwo tokens deducted including exchange fee');
+          // wait for the fee account
+          const feeAccount = await exchange.feeAccount();
+          // balance of the fee account
+          balance = await exchange.balanceOf(token.address, feeAccount);
+          // is balance accurate
+          balance.toString().should.equal(formatTokens(0.1).toString(), 'feeAccount received fee');
+        })
+
+        it('updates filled order mapping', async () => {
+          const orderFilled = await exchange.orderFilled(1);
+          orderFilled.should.equal(true);
+        })
+
+        it('emits a Trade event', async () => {
+          const log = result.logs[0]
+          log.event.should.equal('Trade');
+          const event = log.args;
+          event.id.toString().should.equal('1', 'id is correct');
+          event.user.should.equal(userOne, 'user is correct');
+          event.tokenGet.should.equal(token.address, 'tokenGet is correct');
+          event.amountGet.toString().should.equal(formatTokens(1).toString(), 'amountGet is correct');
+          event.tokenGive.should.equal(ETHER_ADDRESS, 'tokenGive is correct');
+          event.amountGive.toString().should.equal(ether(1).toString(), 'amountGive is correct');
+          event.userFill.should.equal(userTwo, 'userFill is correct');
+          event.timestamp.length.should.be.at.least(1, 'timestamp is correct');
+        })
+
+      })
+
+      describe('failure', async () => {
+
+        it('rejects invalid order ids', async() => {
+          const invalidOrderId = 99999;
+          await exchange.fillOrder(invalidOrderId, { from: userTwo }).should.be.rejectedWith(EVM_REVERT);
+        })
+
+        it('rejects already filled orders', async () => {
+          //fill an order
+          await exchange.fillOrder('1', { from: userTwo }).should.be.fulfilled;
+          //try to fill it again
+          await exchange.fillOrder('1', { from: userTwo }).should.be.rejectedWith(EVM_REVERT);
+        })
+
+        it('rejects cancelled orders', async () => {
+          // Cancel the order
+          await exchange.cancelOrder('1', { from: userOne }).should.be.fulfilled;
+          //try to fill it
+          await exchange.fillOrder('1', { from: userTwo }).should.be.rejectedWith(EVM_REVERT);
+        })
+
+      })
+
     })
 
     describe('cancelling orders', async () => {
@@ -355,7 +443,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
       })
 
       describe('failure', async () => {
-        
+
         it('rejects invalid order ids', async () => {
           const invalidOrderId = 999999999;
           await exchange.cancelOrder(invalidOrderId, { from: userOne }).should.be.rejectedWith(EVM_REVERT);
@@ -369,7 +457,7 @@ contract('Exchange', ([deployer, feeAccount, userOne, userTwo]) => {
       })
 
     })
-    
+
   })
 
 })
