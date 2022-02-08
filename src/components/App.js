@@ -11,7 +11,8 @@ class App extends Component {
   async loadBlockchainData() {
     const web3 = new Web3(window.ethereum)
     const networkId = await web3.eth.net.getId()
-    const accounts = await web3.eth.getAccounts()
+    // const accounts = await web3.eth.getAccounts()
+    console.log(Token.networks[5777].address)
     const token = new web3.eth.Contract(Token.abi, Token.networks[networkId].address)
     const totalSupply = await token.methods.totalSupply().call()
     console.log("totalSupply", totalSupply)
