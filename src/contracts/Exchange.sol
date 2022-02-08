@@ -18,12 +18,12 @@ Handle Trades - Charge fees
 TODO:
 [X] Set the fee and account
 [X] Deposit Ether
-[] Withdraw Ether
+[X] Withdraw Ether
 [X] Deposit Tokens
-[] Withdraw Tokens
-[] Check balances
-[] Make Order
-[] Cancel Order
+[X] Withdraw Tokens
+[X] Check balances
+[X] Make Order
+[X] Cancel Order
 [] Fill Order
 [] Charge Fees
 
@@ -39,12 +39,52 @@ contract Exchange	{
 		address public feeAccount; // The account that recieves exchange fees
 		uint256 public feePercent; // percentage fee
 		address constant ETHER = address(0); // store Ether in tokens mapping with a blank address
+
+		/* Mappings (similar to arrays) */
+		mapping(uint256 => _Order) public orders;
 		mapping(address => mapping(address => uint256)) public tokens; // track tokens (first address) that have been deposited
 		// second address is the user that has deposited
+		// mapping for cancelled orders, b/c we don't remove orders from mapping
+		mapping(uint256 => bool) public orderCancelled;
+
+		/* Order Counter Cache */
+		uint256 public orderCount;
 
 		//  Define events
 		event Deposit(address token, address user, uint256 amount, uint256 balance);
 		event Withdraw(address token, address user, uint256 amount, uint256 balance);
+		event Order(
+			uint256 id,
+			address user,
+			address tokenGet,
+			uint256 amountGet,
+			address tokenGive,
+			uint256 amountGive,
+			uint256 timestamp
+		);
+		event Cancel(
+			uint256 id,
+			address user,
+			address tokenGet,
+			uint256 amountGet,
+			address tokenGive,
+			uint256 amountGive,
+			uint256 timestamp
+		);
+
+		// Model an order with a struct (similar to object being stored in database)
+		struct _Order {
+			//need to add attributes 
+			uint256 id;
+			address user;
+			address tokenGet;
+			uint256 amountGet;
+			address tokenGive;
+			uint256 amountGive;
+			uint256 timestamp;
+		}
+		// Store the order with the mapping
+		
 
 		/* constructor function */
     constructor (address _feeAccount, uint256 _feePercent) public {
@@ -111,6 +151,32 @@ contract Exchange	{
 		function balanceOf(address _token, address _user) public view returns(uint256) {
 			return tokens[_token][_user];
 		}
+
+		// add an order to storage
+		function makeOrder(address _tokenGet, uint256 _amountGet, address _tokenGive, uint256 _amountGive) public {
+			// need to instantiate a new Order struct
+			// increment orderCount to use as id
+			orderCount = orderCount.add(1);
+			// add a Order struct instantiation to the orders mapping
+			orders[orderCount] = _Order(orderCount, msg.sender, _tokenGet, _amountGet, _tokenGive, _amountGive, now);
+			// emit event
+			emit Order(orderCount, msg.sender, _tokenGet, _amountGet, _tokenGive, _amountGive, now);
+		}
+
+		// cancel an order
+		function cancelOrder(uint256 _id) public {
+			// fetch order from the mapping (blockchain storage)
+			_Order storage _order = orders[_id];
+			// make sure the user calling the function owns the order
+			require(address(_order.user) == msg.sender);
+			// make sure order exist
+			require(_order.id == _id);
+			// update separate mapping for cancelled orders do not remove from order mapping
+			orderCancelled[_id] = true;
+			emit Cancel(_order.id, msg.sender, _order.tokenGet, _order.amountGet, _order.tokenGive, _order.amountGive, now);
+		}
+
+		// retrieve from storage
 }
 
 
