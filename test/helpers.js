@@ -15,3 +15,8 @@ export const ETHER_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Variable to hold the revert returns
 export const EVM_REVERT = 'VM Exception while processing transaction: revert';
+
+export const wait = (n) => {
+  const milliseconds = n * 1000;
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
