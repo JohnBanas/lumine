@@ -31,3 +31,27 @@ export function exchangeLoaded(contract) {
     contract
   }
 }
+
+//all orders cancelled from the exchange
+export function cancelledOrdersLoaded(cancelledOrders) {
+  return {
+    type: 'CANCELLED_ORDERS_LOADED',
+    cancelledOrders
+  }
+}
+
+//fulfilled orders on the exchange
+export function filledOrdersLoaded(filledOrders) {
+  return {
+    type: 'FILLED_ORDERS_LOADED',
+    filledOrders
+  }
+}
+
+//all fulfilled orders on the exchange
+export function allOrdersLoaded(allOrders) {
+  return {
+    type: 'All_ORDERS_LOADED',
+    allOrders
+  }
+}
