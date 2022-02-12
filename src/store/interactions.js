@@ -5,7 +5,10 @@ import {
   web3Loaded,
   web3AccountLoaded,
   tokenLoaded,
-  exchangeLoaded
+  exchangeLoaded,
+  cancelledOrdersLoaded,
+  filledOrdersLoaded,
+  allOrdersLoaded
 } from "./actions";
 
 // interaction to create web3 instance 
@@ -53,4 +56,59 @@ export const loadExchange = async (web3, networkId, dispatch) => {
     return null;
   }
 }
+
+export const loadAllOrders = async (exchange, dispatch) => {
+  // Fetch cancelled order with "Cancel" event stream
+  const cancelStream = await exchange.getPastEvents('Cancel', { fromBlock: 0, toBlock: 'latest' });
+  // format cancelled order return
+  const cancelledOrders = cancelStream.map((event) => event.returnValues);
+  //add cancelled order to the redux store
+  dispatch(cancelledOrdersLoaded(cancelledOrders));
+
+  // Fetch filled order with "Trade" event stream
+  const filledOrderStream = await exchange.getPastEvents('Trade', { fromBlock: 0, toBlock: 'latest' });
+  // format trade orders return
+  const filledOrders = filledOrderStream.map((event) => event.returnValues);
+  //add trade orders to the redux store
+  dispatch(filledOrdersLoaded(filledOrders));
+
+  // Fetch all orders with "Order" event stream
+  const orderStream = await exchange.getPastEvents('Order', { fromBlock: 0, toBlock: 'latest' });
+  // format trade orders return
+  const allOrders = orderStream.map((event) => event.returnValues);
+  //add trade orders to the redux store
+  dispatch(allOrdersLoaded(allOrders));
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
