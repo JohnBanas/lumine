@@ -74,15 +74,11 @@ export const loadAllOrders = async (exchange, dispatch) => {
 
   // Fetch all orders with "Order" event stream
   const orderStream = await exchange.getPastEvents('Order', { fromBlock: 0, toBlock: 'latest' });
+
   // format trade orders return
   const allOrders = orderStream.map((event) => event.returnValues);
   //add trade orders to the redux store
   dispatch(allOrdersLoaded(allOrders));
-
-
-
-
-
 }
 
 
