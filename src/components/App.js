@@ -1,33 +1,34 @@
-import React, { Component } from 'react';
-import './App.css';
-import Navbar from './Navbar';
-import Content from './Content';
+import React, { Component } from 'react'
+import './App.css'
+import Navbar from './Navbar'
+import Content from './Content'
+import { connect } from 'react-redux'
 import {
   loadWeb3,
   loadAccount,
   loadToken,
   loadExchange
-} from '../store/interactions';
-import { connect } from 'react-redux';
-import { contractsLoadedSelector } from '../store/selectors';
+} from '../store/interactions'
+import { contractsLoadedSelector } from '../store/selectors'
 
 class App extends Component {
-  componentDidMount() {
+  componentWillMount() {
     this.loadBlockchainData(this.props.dispatch)
   }
 
   async loadBlockchainData(dispatch) {
-    const web3 = loadWeb3(dispatch)
-    await loadAccount(web3, dispatch);
+    const web3 = await loadWeb3(dispatch)
     const networkId = await web3.eth.net.getId()
-    const token = await loadToken(web3, networkId, dispatch);
-    if (!token) {
-      window.alert('Token contract not deployed to the current network. Please select another network with Metamask.')
-      return;
+    await loadAccount(web3, dispatch)
+    const token = await loadToken(web3, networkId, dispatch)
+    if(!token) {
+      window.alert('Token smart contract not detected on the current network. Please select another network with Metamask.')
+      return
     }
-    const exchange = await loadExchange(web3, networkId, dispatch);
-    if (!exchange) {
-      window.alert('Exchange contract not deployed to the current network. Please select another network with Metamask.')
+    const exchange = await loadExchange(web3, networkId, dispatch)
+    if(!exchange) {
+      window.alert('Exchange smart contract not detected on the current network. Please select another network with Metamask.')
+      return
     }
   }
 
@@ -35,7 +36,7 @@ class App extends Component {
     return (
       <div>
         <Navbar />
-        {this.props.contractsLoaded ? <Content /> : <div className='content'>Loading...</div>}
+        { this.props.contractsLoaded ? <Content /> : <div className="content"></div> }
       </div>
     );
   }
@@ -47,4 +48,4 @@ function mapStateToProps(state) {
   }
 }
 
-export default connect(mapStateToProps)(App);
+export default connect(mapStateToProps)(App)

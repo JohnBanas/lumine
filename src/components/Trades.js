@@ -1,12 +1,15 @@
-import React, { Component } from "react";
-import { connect } from "react-redux";
-import { filledOrdersLoadedSelector, filledOrdersSelector } from "../store/selectors";
-import Spinner from "./Spinner";
+import React, { Component } from 'react'
+import { connect } from 'react-redux'
+import Spinner from './Spinner'
+import {
+  filledOrdersLoadedSelector,
+  filledOrdersSelector
+} from '../store/selectors'
 
 const showFilledOrders = (filledOrders) => {
   return (
     <tbody>
-      {filledOrders.map((order, index) => {
+      {filledOrders.map((order) => {
         return (
           <tr className={`order-${order.id}`} key={order.id}>
             <td className="text-muted">{order.formattedTimestamp}</td>
@@ -19,39 +22,37 @@ const showFilledOrders = (filledOrders) => {
   )
 }
 
-
 class Trades extends Component {
   render() {
     return (
       <div className="vertical">
         <div className="card bg-dark text-white">
           <div className="card-header">
-            Currency Trades
+            Trades
           </div>
           <div className="card-body">
             <table className="table table-dark table-sm small">
               <thead>
                 <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">LUMI</th>
-                  <th scope="col">LUMI/ETH</th>
+                  <th>Time</th>
+                  <th>LUMI</th>
+                  <th>LUMI/ETH</th>
                 </tr>
               </thead>
-
               {this.props.filledOrdersLoaded ? showFilledOrders(this.props.filledOrders) : <Spinner type="table" />}
             </table>
           </div>
         </div>
       </div>
-    );
-  }
-};
-
-function mapStateToProps(state) {
-  return {
-    filledOrders: filledOrdersSelector(state),
-    filledOrdersLoaded: filledOrdersLoadedSelector(state)
+    )
   }
 }
 
-export default connect(mapStateToProps)(Trades);
+function mapStateToProps(state) {
+  return {
+    filledOrdersLoaded: filledOrdersLoadedSelector(state),
+    filledOrders: filledOrdersSelector(state),
+  }
+}
+
+export default connect(mapStateToProps)(Trades)
