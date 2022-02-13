@@ -21,9 +21,6 @@ const showFilledOrders = (filledOrders) => {
 
 
 class Trades extends Component {
-
-
-
   render() {
     return (
       <div className="vertical">
